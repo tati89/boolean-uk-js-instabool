@@ -9,32 +9,6 @@ fetch("http://localhost:3000/images")
   })
   .catch(console.error);
 
-/*
-<!-- <article class="image-card">
-        <h2 class="title">Title of image goes here</h2>
-        <img src="./assets/image-placeholder.jpg" class="image" />
-        <div class="likes-section">
-          <span class="likes">0 likes</span>
-          <button class="like-button">♥</button>
-        </div>
-        <ul class="comments">
-          <li>Get rid of these comments</li>
-          <li>And replace them with the real ones</li>
-          <li>From the server</li>
-        </ul>
-        <form class="comment-form">
-          <input
-            class="comment-input"
-            type="text"
-            name="comment"
-            placeholdet="Add a comment..."
-          />
-          <button class="comment-button" type="submit">Post</button>
-        </form>
-      </article> -->
-
-*/
-
 function createTitle(parentEl, img) {
   const titleEl = document.createElement("h2");
   titleEl.setAttribute("class", "title");
@@ -61,6 +35,16 @@ function createLikesSection(parentEl, img) {
   buttonLikesEl.innerText = "♥";
 
   parentEl.append(spanLikesEl, buttonLikesEl);
+
+  buttonLikesEl.addEventListener("click", function () {
+    fetch("http://localhost:3000/images/" + img.id, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ likes: img.likes + 1 }),
+    });
+  });
 }
 
 function createComments(parentEl, img) {
@@ -69,13 +53,17 @@ function createComments(parentEl, img) {
   parentEl.append(ulEl);
 
   for (const comment of img.comments) {
-    const commentEl = document.createElement("li");
-    commentEl.innerText = comment.content;
-    ulEl.append(commentEl);
+    createComment(comment, ulEl);
   }
 }
 
-function createCommentForm(parentEl) {
+function createComment(comment, ulEl) {
+  const commentEl = document.createElement("li");
+  commentEl.innerText = comment.content;
+  ulEl.append(commentEl);
+}
+
+function createCommentForm(parentEl, img) {
   const commentFormEl = document.createElement("form");
   commentFormEl.setAttribute("class", "comment-form");
   parentEl.append(commentFormEl);
@@ -91,7 +79,31 @@ function createCommentForm(parentEl) {
   formButtonEl.setAttribute("type", "submit");
   formButtonEl.innerText = "Post";
 
+  const commentsUl = parentEl.querySelector(".comments");
+
   commentFormEl.append(inputEl, formButtonEl);
+
+  commentFormEl.addEventListener("submit", function (event) {
+    event.preventDefault();
+    let id = img.id;
+    const createdContent = {
+      content: inputEl.value,
+      imageId: id,
+    };
+    fetch("http://localhost:3000/comments", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(createdContent),
+    })
+      .then(function (response) {
+        return response.json();
+      })
+      .then(function (comment) {
+        createComment(comment, commentsUl);
+      });
+  });
 }
 
 function createCards(images) {
@@ -113,6 +125,6 @@ function createCards(images) {
     createLikesSection(likesSectionEl, img);
     createComments(articleImgCardEl, img);
 
-    createCommentForm(articleImgCardEl);
+    createCommentForm(articleImgCardEl, img);
   }
 }
